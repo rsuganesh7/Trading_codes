@@ -2,3 +2,5 @@
 /.venv
 /.vscode
 /trading-8a164-firebase-adminsdk-jq4mh-55b2278f8c.json
+/.env
+Smartapi/root/.env
