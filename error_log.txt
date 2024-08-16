@@ -31,3 +31,13 @@ Error processing data for INDHOTEL: HTTPSConnectionPool(host='apiconnect.angelbr
 Error processing data for IOC: HTTPSConnectionPool(host='apiconnect.angelbroking.com', port=443): Read timed out. (read timeout=7)
 Error processing data for IRCTC: HTTPSConnectionPool(host='apiconnect.angelbroking.com', port=443): Read timed out. (read timeout=7)
 Error processing data for JINDALSTEL: HTTPSConnectionPool(host='apiconnect.angelbroking.com', port=443): Read timed out. (read timeout=7)
+Error processing data for CANBK: HTTPSConnectionPool(host='apiconnect.angelbroking.com', port=443): Read timed out. (read timeout=7)
+Error processing data for IGL: HTTPSConnectionPool(host='apiconnect.angelbroking.com', port=443): Read timed out.
+Error processing data for JINDALSTEL: HTTPSConnectionPool(host='apiconnect.angelbroking.com', port=443): Read timed out. (read timeout=7)
+Error processing data for LTTS: HTTPSConnectionPool(host='apiconnect.angelbroking.com', port=443): Read timed out. (read timeout=7)
+Error processing data for M&MFIN: HTTPSConnectionPool(host='apiconnect.angelbroking.com', port=443): Read timed out.
+Error processing data for MAXHEALTH: HTTPSConnectionPool(host='apiconnect.angelbroking.com', port=443): Read timed out. (read timeout=7)
+Error processing data for PIIND: HTTPSConnectionPool(host='apiconnect.angelbroking.com', port=443): Read timed out. (read timeout=7)
+Error processing data for PEL: HTTPSConnectionPool(host='apiconnect.angelbroking.com', port=443): Read timed out. (read timeout=7)
+Error processing data for SYNGENE: HTTPSConnectionPool(host='apiconnect.angelbroking.com', port=443): Read timed out. (read timeout=7)
+Error processing data for MCDOWELL-N: single positional indexer is out-of-bounds

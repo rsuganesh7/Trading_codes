@@ -21,6 +21,7 @@ class Main:
             self.process_stocks()
         except Exception as e:
             print(f"Failed to login or retrieve stock data: {e}")
+            
 
     def process_stocks(self):
         nifty_200 = pd.read_csv("ind_nifty200list.csv")["Symbol"].to_list()
