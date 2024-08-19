@@ -6,3 +6,9 @@
 Smartapi/root/.env
 Backtest/Plots
 Backtest/Results
+Backtest/FnO
+
+backtest_results
+logs
+
+*_trade_history.csv

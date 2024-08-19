@@ -25,7 +25,7 @@ def custom_resample(df, start='09:15', end='15:30', freq='1f'):
             'Close': 'last',
             'Volume': 'sum',
         }
-    )
+    ).dropna()
 
 def calculate_pivot_levels(high, low, close):
     pp = (high + low + close) / 3
@@ -50,6 +50,8 @@ def apply_pivots(df):
         axis=1, 
         result_type='expand'
     )
+    df['%CPR'] = abs(df['TC'] - df['BC'])/df['PP']
+    df['Date'] = df.index.date
     return df
 
 def data_preprocessing(data,file_name):

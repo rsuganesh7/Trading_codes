@@ -24,10 +24,11 @@ class Main:
             
 
     def process_stocks(self):
-        nifty_200 = pd.read_csv("ind_nifty200list.csv")["Symbol"].to_list()
+        nifty_200 = pd.read_csv("FnO.csv")["SYMBOL"].to_list()
         
         # Ensure the directory exists
-        os.makedirs("nifty_200/5M", exist_ok=True)
+        output_path ="FnO/5M"
+        os.makedirs(output_path, exist_ok=True)
         
         for ticker in nifty_200:
             try:
@@ -47,7 +48,7 @@ class Main:
                 })
                 
                 # Saving the DataFrame to a CSV file
-                modified_dict.to_csv(f"nifty_200/5M/{ticker}.csv", index=False)
+                modified_dict.to_csv(f"{output_path}/{ticker}.csv", index=False)
                 print(f'Data for {ticker} saved successfully.')
             
             except Exception as e:
