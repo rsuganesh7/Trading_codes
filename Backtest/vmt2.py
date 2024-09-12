@@ -231,4 +231,4 @@ def main(folder_path):
     print(f'The total time taken is {end_time - start_time}')
     print("Backtesting results saved to 'backtesting_results.csv'")
 if __name__ == "__main__":
-    main('FnO/5M')
+    main('/Users/suganeshr/Trading/FnO/FIVE_MINUTE')
