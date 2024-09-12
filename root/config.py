@@ -1,3 +1,4 @@
+#config.py
 import os
 from dotenv import load_dotenv
 
@@ -18,6 +19,6 @@ DB_PASSWORD= os.environ.get('DB_PASSWORD')
 DB_HOST= os.environ.get('DB_HOST')
 DB_USER= os.environ.get('DB_USER')
 
-
+print(f'TOTP key is {TOTP_KEY}')
 # API Endpoints and Paths
 INSTRUMENT_LIST_URL = "https://margincalculator.angelbroking.com/OpenAPI_File/files/OpenAPIScripMaster.json"

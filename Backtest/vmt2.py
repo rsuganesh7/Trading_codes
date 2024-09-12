@@ -48,56 +48,115 @@ def define_trading_conditions(data):
         (data.index.time <= end_time)
     )
                     
-    sell_condition = (data.Close > data.R3) | (data.Close < data.TC) 
+    sell_condition = (data.Close > data.R3) | (data.Close < data.TC) | (data.RSI < 50)
+    short_condition = (
+        (data['%CPR'] < 0.01) &
+        (data.RSI < 30) &
+        (data.Close < data.S1) &
+        (data.Close.shift(1) > data.S1) &
+        (data.index.time >= start_time) &
+        (data.index.time <= end_time)
+    )
     
-    data['Signal'] = np.select([buy_condition, sell_condition], ['Buy', 'Sell'])
+    cover_condition  = (data.Close < data.S3) | (data.Close > data.BC) | (data.RSI > 50)
+    
+    data['Signal'] = np.select([buy_condition, sell_condition,short_condition,cover_condition], ['Buy', 'Sell','Short','Cover'])
     data['Shifted_close'] = data['Close'].shift()
     
     return data
 
 def backtest(df, initial_capital=100000, risk_per_trade=0.01, stop_loss=0.01, take_profit=0.03):
     """Backtest the trading strategy with given conditions."""
-    position = False
-    trades = {'Buy Date': [], 'Buy Price': [], 'Sell Date': [], 'Sell Price': [], 'Quantity': []}
+    position = None  # Track if we are in a 'Long' or 'Short' position
+    trades = {
+        'Buy Date': [], 'Buy Price': [], 'Sell Date': [], 'Sell Price': [],
+        'Type': [], 'Quantity': []
+    }
     capital = initial_capital
     close_time = datetime.time(15, 10)
-    
+
     for index, row in df.iterrows():
-        if row['Signal'] == 'Buy' and not position:
-            position = True
+        # Handle Buy signals for long positions
+        if row['Signal'] == 'Buy' and position is None:
+            position = 'Long'
             risk_amount = capital * risk_per_trade
             qty = math.floor(risk_amount / (stop_loss * row['Close']))
             capital -= qty * row['Close']
             trades['Buy Date'].append(index)
             trades['Buy Price'].append(row['Close'])
+            trades['Sell Date'].append(np.nan)
+            trades['Sell Price'].append(np.nan)
+            trades['Type'].append('Long')
             trades['Quantity'].append(qty)
             logger.info(f"Buy Signal: {index}, Price: {row['Close']}, Quantity: {qty}")
 
-        if position:
-            if row['Signal'] == 'Sell' or row['Shifted_close'] < (1 - stop_loss) * trades['Buy Price'][-1] or \
-               row['Shifted_close'] > (1 + take_profit) * trades['Buy Price'][-1] or index.time() > close_time:
-                trades['Sell Date'].append(index)
-                trades['Sell Price'].append(row['Close'])
+        # Handle Short signals for short positions
+        elif row['Signal'] == 'Short' and position is None:
+            position = 'Short'
+            risk_amount = capital * risk_per_trade
+            qty = math.floor(risk_amount / (stop_loss * row['Close']))
+            capital += qty * row['Close']  # Short selling adds capital
+            trades['Buy Date'].append(np.nan)
+            trades['Buy Price'].append(np.nan)
+            trades['Sell Date'].append(index)
+            trades['Sell Price'].append(row['Close'])
+            trades['Type'].append('Short')
+            trades['Quantity'].append(qty)
+            logger.info(f"Short Signal: {index}, Price: {row['Close']}, Quantity: {qty}")
+
+        # Handle Sell signals or stop-loss/take-profit for long positions
+        if position == 'Long':
+            if (row['Signal'] == 'Sell' or 
+                row['Shifted_close'] < (1 - stop_loss) * trades['Buy Price'][-1] or 
+                row['Shifted_close'] > (1 + take_profit) * trades['Buy Price'][-1] or 
+                index.time() > close_time):
+                trades['Sell Date'][-1] = index
+                trades['Sell Price'][-1] = row['Close']
                 capital += qty * row['Close']
                 logger.info(f"Sell Signal: {index}, Price: {row['Close']}, PnL: {qty * (row['Close'] - trades['Buy Price'][-1])}")
-                position = False
+                position = None
+
+        # Handle Cover signals or stop-loss/take-profit for short positions
+        elif position == 'Short':
+            if (row['Signal'] == 'Cover' or 
+                row['Shifted_close'] > (1 + stop_loss) * trades['Sell Price'][-1] or 
+                row['Shifted_close'] < (1 - take_profit) * trades['Sell Price'][-1] or 
+                index.time() > close_time):
+                trades['Buy Date'][-1] = index
+                trades['Buy Price'][-1] = row['Close']
+                capital -= qty * row['Close']  # Covering a short reduces capital
+                logger.info(f"Cover Signal: {index}, Price: {row['Close']}, PnL: {qty * (trades['Sell Price'][-1] - row['Close'])}")
+                position = None
 
     # Ensure lists are of equal length by filling with NaN
     max_len = max(len(trades['Buy Date']), len(trades['Sell Date']))
-    for key in trades.keys():
+    for key in trades:
         trades[key].extend([np.nan] * (max_len - len(trades[key])))
 
     return pd.DataFrame(trades)
 
+
 def calculate_trade_metrics(trade_history_df):
-    """Calculate metrics like Return, PnL, Cumulative Profit, etc."""
-    trade_history_df['Return'] = (trade_history_df['Sell Price'] - trade_history_df['Buy Price']) / trade_history_df['Buy Price']
-    trade_history_df['Days'] = (trade_history_df['Sell Date'] - trade_history_df['Buy Date']).dt.days
-    trade_history_df['PnL'] = trade_history_df['Sell Price'] - trade_history_df['Buy Price']
+    """Calculate metrics like Return, PnL, Cumulative Profit, etc., for both Long and Short trades."""
+    
+    # Calculate PnL based on trade type
+    trade_history_df['PnL'] = np.where(
+        trade_history_df['Type'] == 'Long',
+        trade_history_df['Sell Price'] - trade_history_df['Buy Price'],
+        trade_history_df['Sell Price'] - trade_history_df['Buy Price']
+    )
+    
+    trade_history_df['Return'] = np.where(
+        trade_history_df['Type'] == 'Long',
+        trade_history_df['PnL'] / trade_history_df['Buy Price'],
+        -trade_history_df['PnL'] / trade_history_df['Sell Price']
+    )
+    
     trade_history_df['Realized Profit'] = trade_history_df['PnL'] * trade_history_df['Quantity']
     trade_history_df['Cum Profit'] = trade_history_df['Realized Profit'].cumsum()
     trade_history_df['Cumulative Return'] = (1 + trade_history_df['Return']).cumprod() - 1
     trade_history_df['Drawdown'] = trade_history_df['Cum Profit'].cummax() - trade_history_df['Cum Profit']
+    trade_history_df['Days'] = (trade_history_df['Sell Date'] - trade_history_df['Buy Date']).dt.days
     
     # Calculate KPIs
     total_trades = len(trade_history_df.dropna())
@@ -114,32 +173,19 @@ def calculate_trade_metrics(trade_history_df):
         'Win Rate': win_rate,
         'Average PnL': avg_pnl,
         'Total Profit': total_profit,
-        'Max Drawdown': trade_history_df['Drawdown'].max()
+        'Max Drawdown': trade_history_df['Drawdown'].max(),
     }
     
     return trade_history_df, kpi
 
-def plot_metrics(trade_history_df, stock_symbol):
-    """Plot cumulative profit and drawdown."""
-    plt.figure(figsize=(14, 7))
 
-    # Plot Cumulative Profit
-    plt.subplot(2, 1, 1)
-    plt.plot(trade_history_df['Buy Date'], trade_history_df['Cum Profit'], label='Cumulative Profit')
-    plt.title(f'Cumulative Profit for {stock_symbol}')
-    plt.xlabel('Trade')
-    plt.ylabel('Cumulative Profit')
-    plt.legend()
 
-    # Plot Drawdown
-    plt.subplot(2, 1, 2)
-    plt.plot(trade_history_df.index, trade_history_df['Drawdown'], label='Drawdown', color='red')
-    plt.title(f'Drawdown for {stock_symbol}')
+# TODO Rename this here and in `plot_metrics`
+def _extracted_from_plot_metrics_8(arg0, stock_symbol, arg2):
+    plt.title(f'{arg0}{stock_symbol}')
     plt.xlabel('Trade')
-    plt.ylabel('Drawdown')
+    plt.ylabel(arg2)
     plt.legend()
-    plt.tight_layout()
-    plt.show()
 
 def process_file(file_path):
     file_name = os.path.basename(file_path).replace('.csv', '')
@@ -153,7 +199,7 @@ def process_file(file_path):
     output_dir = 'Backtest/FnO/Results/Charts'
     os.makedirs(output_dir, exist_ok=True)
     trade_history_df.to_csv(os.path.join(output_dir, f'{file_name}_trade_history.csv'), index=False)
-    
+    kpi['Symbol'] = file_name
     # Plot the metrics
     # plot_metrics(trade_history_df, file_name)
 
@@ -162,6 +208,8 @@ def process_file(file_path):
 def main(folder_path):
     result_list = []
     stock_files = [os.path.join(folder_path, file) for file in os.listdir(folder_path) if file.endswith('.csv')]
+    
+    start_time = datetime.datetime.now()
 
     with ThreadPoolExecutor() as executor:
         future_to_file = {executor.submit(process_file, file): file for file in stock_files}
@@ -171,6 +219,7 @@ def main(folder_path):
             try:
                 result = future.result()
                 result_list.append(result)
+                print(f'The result is {result}')
             except Exception as e:
                 print(f"An error occurred while processing {file}: {e}")
 
@@ -178,7 +227,8 @@ def main(folder_path):
     result_df = pd.DataFrame(result_list)
     
     result_df.to_csv('Backtest/FnO/Results/backtesting_results.csv', index=False)
+    end_time = datetime.datetime.now()
+    print(f'The total time taken is {end_time - start_time}')
     print("Backtesting results saved to 'backtesting_results.csv'")
-
 if __name__ == "__main__":
     main('FnO/5M')

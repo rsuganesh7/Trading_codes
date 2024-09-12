@@ -68,7 +68,7 @@ class InstrumentDetail:
     #     data = json.loads(response.read())
     #     return data
     def get_instrument_list(self):
-        with open('il.json', 'r') as f:
+        with open('/Users/suganeshr/Trading/Trading_codes/il.json', 'r') as f:
             il = json.load(f)
         return il
 

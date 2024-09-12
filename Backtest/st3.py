@@ -34,7 +34,6 @@ def load_and_prepare_data(file_path):
     hourly_data['Date'] = hourly_data.index.date
     hourly_data['datetime'] = hourly_data.index
     
-    merged_data = pd.merge()
     
     merged_data = pd.merge(hourly_data, daily_data[['Date', 'PP', 'TC', 'BC', 'R1', 'R2', 'R3', 'S1', 'S2', 'S3', '%CPR']], on='Date')
     merged_data.set_index('datetime', inplace=True)
@@ -212,6 +211,6 @@ def run_backtest_for_multiple_stocks(stock_files):
         
 if __name__ == "__main__":
     # Logging
-    file_directory = 'nifty_200/5M'
+    file_directory = '/Users/suganeshr/Trading/FnO/FIVE_MINUTE'
     stock_files = [os.path.join(file_directory, file) for file in os.listdir(file_directory) if file.endswith('.csv')]
     run_backtest_for_multiple_stocks(stock_files)

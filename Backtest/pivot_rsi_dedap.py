@@ -151,12 +151,11 @@ def process_file(file_paths, rsi_period, vwma_length, stop_loss, take_profit):
     # Return the average total profit across all files
     return np.mean(total_profits)
 
-
 def genetic_algorithm(file_paths):
     # Define parameter ranges
-    rsi_periods = range(10, 21)
-    vwma_lengths = range(3, 11)
-    stop_losses = [0.005, 0.01, 0.015]
+    rsi_periods = range(8, 15)
+    vwma_lengths = range(3, 6)
+    stop_losses = [0.01, 0.02, 0.03]
     take_profits = [0.02, 0.03, 0.04]
 
     # Define individual and fitness
@@ -183,7 +182,26 @@ def genetic_algorithm(file_paths):
 
     toolbox.register("evaluate", evaluate)
     toolbox.register("mate", tools.cxBlend, alpha=0.5)
-    toolbox.register("mutate", tools.mutPolynomialBounded, low=[10, 3, 0.005, 0.02], up=[20, 10, 0.015, 0.04], eta=0.1, indpb=0.2)
+    
+    # Mutate with additional logging to catch complex numbers
+    def safe_mutPolynomialBounded(individual, eta, low, up, indpb):
+        # Log the individual before mutation
+        logger.debug(f"Before mutation: {individual}")
+        
+        # Perform the mutation
+        mutated_individual = tools.mutPolynomialBounded(individual, eta=eta, low=low, up=up, indpb=indpb)
+        
+        # Ensure values stay within the specified bounds and remain real numbers
+        for i, value in enumerate(mutated_individual[0]):
+            # Clamp the value within the bounds
+            mutated_individual[0][i] = max(min(value.real, up[i]), low[i])
+        
+        # Log the individual after mutation
+        logger.debug(f"After mutation: {mutated_individual}")
+        
+        return mutated_individual
+    
+    toolbox.register("mutate", safe_mutPolynomialBounded, eta=0.1, low=[10, 3, 0.005, 0.02], up=[20, 10, 0.015, 0.04], indpb=0.2)
     toolbox.register("select", tools.selTournament, tournsize=3)
 
     population = toolbox.population(n=50)
@@ -192,7 +210,6 @@ def genetic_algorithm(file_paths):
     best_individual = tools.selBest(population, k=1)[0]
     print(f"Best Parameters: {best_individual}")
     print(f"Best KPI: {evaluate(best_individual)}")
-
 
 if __name__ == "__main__":
     folder_path = 'FnO/5M'

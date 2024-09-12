@@ -24,38 +24,41 @@ class Main:
             
 
     def process_stocks(self):
-        nifty_200 = pd.read_csv("FnO.csv")["SYMBOL"].to_list()
+        nifty_200 = pd.read_csv("/Users/suganeshr/Trading/Trading_codes/FnO.csv")["SYMBOL"].to_list()
         
         # Ensure the directory exists
-        output_path ="FnO/5M"
-        os.makedirs(output_path, exist_ok=True)
+       
         
-        for ticker in nifty_200:
-            try:
-                data_dict = self.prepare_data(
-                    self.obj, "NSE", 1500, ticker, "FIVE_MINUTE"
-                )
-                print(f'Data for {ticker} is being processed...')
+        intervals = ['FIVE_MINUTE']
+        for interval in intervals:
+            output_path =f"FnO/{interval}"
+            os.makedirs(output_path, exist_ok=True)
+            for ticker in nifty_200:
+                try:
+                    data_dict = self.prepare_data(
+                        self.obj, "NSE", 2500, ticker, interval
+                    )
+                    print(f'Data for {ticker} is being processed...')
+                    
+                    # Creating DataFrame in a more concise manner
+                    modified_dict = pd.DataFrame({
+                        'Datetime': data_dict.index,
+                        'Open': data_dict['open'],
+                        'High': data_dict['high'],
+                        'Low': data_dict['low'],
+                        'Close': data_dict['close'],
+                        'Volume': data_dict['volume']
+                    })
+                    
+                    # Saving the DataFrame to a CSV file
+                    modified_dict.to_csv(f"{output_path}/{ticker}_{interval}.csv", index=False)
+                    print(f'Data for {ticker} saved successfully.')
                 
-                # Creating DataFrame in a more concise manner
-                modified_dict = pd.DataFrame({
-                    'Datetime': data_dict.index,
-                    'Open': data_dict['open'],
-                    'High': data_dict['high'],
-                    'Low': data_dict['low'],
-                    'Close': data_dict['close'],
-                    'Volume': data_dict['volume']
-                })
-                
-                # Saving the DataFrame to a CSV file
-                modified_dict.to_csv(f"{output_path}/{ticker}.csv", index=False)
-                print(f'Data for {ticker} saved successfully.')
-            
-            except Exception as e:
-                print(f"Error processing data for {ticker}: {e}")
-                # Optionally log errors to a file
-                with open("error_log.txt", "a") as log_file:
-                    log_file.write(f"Error processing data for {ticker}: {e}\n")
+                except Exception as e:
+                    print(f"Error processing data for {ticker}: {e}")
+                    # Optionally log errors to a file
+                    with open("error_log.txt", "a") as log_file:
+                        log_file.write(f"Error processing data for {ticker}: {e}\n")
 
 
     def prepare_data(self, obj, exchange, duration, ticker, interval):
