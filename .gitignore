@@ -4,3 +4,15 @@
 /trading-8a164-firebase-adminsdk-jq4mh-55b2278f8c.json
 /.env
 Smartapi/root/.env
+Backtest/Plots
+Backtest/Results
+Backtest/FnO
+
+backtest_results
+logs
+
+*_trade_history.csv
+
+/Users/suganeshr/Trading/Trading_codes/rare-style-435014-p3-cb0d67622335.json
+Trading_codes/rare-style-435014-p3-cb0d67622335.json
+/Users/suganeshr/Trading/Trading_codes/rare-style-435014-p3-cb0d67622335.json
